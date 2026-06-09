@@ -82,6 +82,9 @@ tr.s td{background:#fffbf5}
 .pb2.active{background:#1F3864;color:white;border-color:#1F3864}
 .pb2:disabled{opacity:.35;cursor:default}
 .pi{font-size:11px;color:#888}
+.sec-btn{padding:4px 10px;border:1px solid #ddd;border-radius:4px;background:white;cursor:pointer;font-size:11px;color:#555;transition:all .15s}
+.sec-btn:hover{background:#f0f4f8}
+.sec-btn.active{background:#1F3864;color:white;border-color:#1F3864}
 </style>
 </head>
 <body>
@@ -127,6 +130,12 @@ tr.s td{background:#fffbf5}
       <span id="naics-check" style="font-size:14px">✅</span>
       <span>My NAICS Only</span>
     </label>
+    <span class="fl2">Sector:</span>
+    <div style="display:flex;gap:3px">
+      <button id="sec-all" class="sec-btn active" onclick="setSector('all')">All</button>
+      <button id="sec-def" class="sec-btn" onclick="setSector('defense')">🛡 Defense/Intel</button>
+      <button id="sec-civ" class="sec-btn" onclick="setSector('civilian')">🏛 Civilian</button>
+    </div>
     <span id="cf" onclick="clf()">✕ Clear filters</span>
     <div style="margin-left:auto;display:flex;gap:6px">
       <button class="ebtn" onclick="exp()">⬇ Export CSV</button>
@@ -154,6 +163,8 @@ var all=[],fil=[],pg=1,PS=25,sk='end_date',sd=1,urg='all';
 var flagged=JSON.parse(localStorage.getItem('8a_f')||'{}');
 var MY_NAICS=['541519','334118','513210','518210','541330','541511','541512','541513','541611','561422','561990','611420'];
 var naicsOnly=true;
+var sectorFilter='all';
+var DEFENSE_AGENCIES=/department of defense|department of homeland security|homeland security|coast guard|secret service|transportation security|customs and border|immigration|fema|federal emergency|intelligence|national security/i;
 var chart=null;
 var today=new Date();today.setHours(0,0,0,0);
 var sixMo=new Date(today);sixMo.setMonth(sixMo.getMonth()+6);
@@ -236,6 +247,8 @@ function af(){
     if(urg==='flagged'&&!flagged[c.award_id])return false;
     if(urg!=='all'&&urg!=='flagged'&&c.urgency!==urg)return false;
     if(naicsOnly&&!MY_NAICS.includes(c.naics_code))return false;
+    if(sectorFilter==='defense'&&!DEFENSE_AGENCIES.test(c.agency+' '+c.sub_agency))return false;
+    if(sectorFilter==='civilian'&&DEFENSE_AGENCIES.test(c.agency+' '+c.sub_agency))return false;
     if(ag&&c.agency!==ag)return false;
     if(q&&!(c.award_id+' '+c.recipient+' '+c.agency+' '+c.description+' '+c.end_date).toLowerCase().includes(q))return false;
     return true;
@@ -244,11 +257,17 @@ function af(){
   pg=1;document.getElementById('cf').style.display=(urg!=='all'||q||ag)?'inline':'none';rt();
 }
 function toggleNaics(){naicsOnly=!naicsOnly;document.getElementById('naics-check').textContent=naicsOnly?'✅':'⬜';af();}
+function setSector(s){
+  sectorFilter=s;
+  document.querySelectorAll('.sec-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('sec-'+s).classList.add('active');
+  af();
+}
 function sb(k){if(sk===k)sd*=-1;else{sk=k;sd=1;}document.getElementById('ss').value=k+'|'+sd;af();}
 function fu(u){urg=u;document.querySelectorAll('.kpi').forEach(function(k){k.classList.remove('active');});var m={urgent:'ku',soon:'ks',later:'kl',flagged:'kf',all:'ka'};if(m[u])document.getElementById(m[u]).classList.add('active');af();}
 function fm(m){document.getElementById('si').value=m;urg='all';af();}
 function fag(a){document.getElementById('agf').value=a;af();}
-function clf(){urg='all';naicsOnly=true;document.getElementById('naics-check').textContent='✅';document.getElementById('si').value='';document.getElementById('agf').value='';document.querySelectorAll('.kpi').forEach(function(k){k.classList.remove('active');});af();}
+function clf(){urg='all';naicsOnly=true;document.getElementById('naics-check').textContent='✅';sectorFilter='all';document.querySelectorAll('.sec-btn').forEach(function(b){b.classList.remove('active');});document.getElementById('sec-all').classList.add('active');document.getElementById('si').value='';document.getElementById('agf').value='';document.querySelectorAll('.kpi').forEach(function(k){k.classList.remove('active');});af();}
 function rt(){
   var start=(pg-1)*PS,sl=fil.slice(start,start+PS);
   document.getElementById('tb').innerHTML=sl.map(function(c){
