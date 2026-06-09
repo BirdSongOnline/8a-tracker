@@ -265,4 +265,27 @@ function rt(){
   h+='<button class="pb2" onclick="gp('+(pg+1)+')" '+(pg>=tot?'disabled':'')+'>Next ›</button>';
   document.getElementById('pbs').innerHTML=h;
 }
-function gp(p){var t=Math.ceil(fil.length/PS);if(p<1||p>t)retur
+function gp(p){var t=Math.ceil(fil.length/PS);if(p<1||p>t)return;pg=p;rt();document.querySelector('.sec').scrollIntoView({behavior:'smooth'});}
+function tf(id){flagged[id]=!flagged[id];if(!flagged[id])delete flagged[id];localStorage.setItem('8a_f',JSON.stringify(flagged));ukpi();rt();}
+function exp(){
+  var h=['Award ID','Recipient','Agency','Sub-Agency','Amount','End Date','Potential End','Urgency','NAICS','PSC','Description'];
+  var rows=fil.map(function(c){return[c.award_id,c.recipient,c.agency,c.sub_agency,c.amount,c.end_date,c.potential_end,c.urgency,c.naics,c.psc,c.description].map(function(v){return'"'+String(v||'').replace(/"/g,'""')+'"';}).join(',');});
+  var b=new Blob([h.join(',')+'\n'+rows.join('\n')],{type:'text/csv'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='8a_expiring_'+t0+'.csv';a.click();
+}
+load().then(boot).catch(function(e){
+  var isTimeout = e.name==='AbortError'||e.message.includes('abort');
+  document.getElementById('ls').innerHTML = isTimeout
+    ? '⚠️ USASpending.gov is not responding (timed out after 30s).<br>The API may be temporarily down. <a href="https://status.usaspending.gov" target="_blank">Check status</a>'
+    : '⚠️ Error: '+e.message;
+  document.getElementById('ls').style.color='#c0392b';
+  document.getElementById('pb-wrap').style.display='none';
+  document.getElementById('pt').style.display='none';
+  var btn=document.createElement('button');
+  btn.textContent='↺ Try Again';
+  btn.style.cssText='margin-top:12px;padding:8px 20px;background:#1F3864;color:white;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600';
+  btn.onclick=function(){location.reload();};
+  document.getElementById('loading').appendChild(btn);
+});
+</script>
+</body></html>
