@@ -237,7 +237,7 @@ function af(){
     if(urg!=='all'&&urg!=='flagged'&&c.urgency!==urg)return false;
     if(naicsOnly&&!MY_NAICS.includes(c.naics_code))return false;
     if(ag&&c.agency!==ag)return false;
-    if(q&&!(c.award_id+' '+c.recipient+' '+c.agency+' '+c.description).toLowerCase().includes(q))return false;
+    if(q&&!(c.award_id+' '+c.recipient+' '+c.agency+' '+c.description+' '+c.end_date).toLowerCase().includes(q))return false;
     return true;
   });
   fil.sort(function(a,b){var av=a[fsk],bv=b[fsk];return typeof av==='number'?(av-bv)*fsd:String(av).localeCompare(String(bv))*fsd;});
