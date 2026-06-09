@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>8(a) Expiring Contracts Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<style>
+:root{color-scheme:light;font-family:Arial,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f5f7fa;color:#1a1a2e;font-size:13px}
+.hdr{background:linear-gradient(135deg,#1F3864,#2d5a9e);color:white;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+.hdr h1{font-size:20px;font-weight:700}.hdr p{font-size:11px;opacity:.8;margin-top:3px}
+.hdr-r{text-align:right;font-size:11px;opacity:.9}
+.tag{display:inline-block;background:rgba(255,255,255,.18);border-radius:10px;padding:2px 8px;font-size:10px;margin:2px}
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px}
+.spin{width:48px;height:48px;border:5px solid #dde;border-top-color:#1F3864;border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.lt{font-size:16px;font-weight:600;color:#1F3864}
+.ls{font-size:12px;color:#666;text-align:center;max-width:360px}
+#pb-wrap{width:320px;background:#e0e7ef;border-radius:6px;height:8px;overflow:hidden}
+#pb{height:100%;background:#2d5a9e;border-radius:6px;width:0%;transition:width .3s}
+#pt{font-size:11px;color:#555}
+#main{display:none}
+.c{padding:16px 24px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:white;border-radius:8px;padding:14px 16px;border-left:4px solid #1F3864;box-shadow:0 1px 4px rgba(0,0,0,.08);cursor:pointer;transition:box-shadow .15s,transform .15s;user-select:none}
+.kpi:hover{box-shadow:0 4px 12px rgba(0,0,0,.15);transform:translateY(-1px)}
+.kpi.active{box-shadow:0 4px 14px rgba(31,56,100,.28);outline:2px solid #1F3864}
+.kpi .v{font-size:26px;font-weight:700;color:#1F3864}
+.kpi .l{font-size:10px;color:#666;margin-top:4px;text-transform:uppercase;letter-spacing:.4px;line-height:1.4}
+.kpi .h{font-size:9px;color:#bbb;margin-top:4px}
+.kpi.u{border-left-color:#c0392b}.kpi.u .v{color:#c0392b}
+.kpi.s{border-left-color:#e67e22}.kpi.s .v{color:#e67e22}
+.kpi.ok{border-left-color:#27ae60}.kpi.ok .v{color:#27ae60}
+.kpi.fl{border-left-color:#8e44ad}.kpi.fl .v{color:#8e44ad}
+.kpi.al{border-left-color:#7f8c8d}.kpi.al .v{color:#7f8c8d}
+.cr{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.card{background:white;border-radius:8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.card h3{font-size:11px;font-weight:700;color:#555;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #f0f0f0;padding-bottom:6px}
+canvas{max-height:180px}
+.ab{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer}
+.ab:hover .an{color:#2d5a9e}
+.an{font-size:10px;color:#444;width:175px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bw{flex:1;background:#f0f4f8;border-radius:3px;height:14px}
+.bf{height:100%;background:#2d5a9e;border-radius:3px;transition:width .4s}
+.ac{font-size:10px;color:#666;width:30px;text-align:right;flex-shrink:0}
+.fb{background:white;border-radius:8px;padding:10px 14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fl2{font-size:10px;color:#888;font-weight:700;text-transform:uppercase}
+.fb input,.fb select{font-size:11px;padding:5px 8px;border:1px solid #ddd;border-radius:4px;outline:none}
+.fb input:focus,.fb select:focus{border-color:#2d5a9e}
+#si{width:220px}
+#cf{font-size:10px;color:#c0392b;cursor:pointer;text-decoration:underline;display:none}
+.ebtn{padding:5px 12px;background:#27ae60;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600}
+.ebtn:hover{background:#219a52}
+.rbtn{padding:5px 12px;background:#1F3864;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600}
+.rbtn:hover{background:#2d5a9e}
+.sec{background:white;border-radius:8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sec h3{font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px}
+#rc{font-size:11px;color:#888}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#1F3864;color:white;padding:7px 10px;text-align:left;font-size:10px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{background:#2d5a9e}
+td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+tr:hover td{background:#f8f9fc}
+tr.u td{background:#fff9f9}
+tr.s td{background:#fffbf5}
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700}
+.bu{background:#fde8e8;color:#c0392b}
+.bs{background:#fef5e4;color:#e67e22}
+.bl{background:#e8f8f0;color:#27ae60}
+.al2{color:#2d5a9e;text-decoration:none;font-weight:600;font-family:monospace;font-size:10px}
+.al2:hover{text-decoration:underline}
+.flg{background:none;border:none;cursor:pointer;font-size:15px;padding:0;line-height:1;transition:transform .1s}
+.flg:hover{transform:scale(1.2)}
+.flg.on{opacity:1}
+.flg:not(.on){opacity:.2}
+.pg{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.pbs{display:flex;gap:4px}
+.pb2{padding:4px 10px;border:1px solid #ddd;border-radius:4px;background:white;cursor:pointer;font-size:11px}
+.pb2:hover:not(:disabled){background:#f0f4f8}
+.pb2.active{background:#1F3864;color:white;border-color:#1F3864}
+.pb2:disabled{opacity:.35;cursor:default}
+.pi{font-size:11px;color:#888}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div><h1>📋 8(a) Expiring Contracts Tracker</h1>
+  <p>8(a) set-aside contracts expiring within 6 months · Source: USASpending.gov · Click KPI cards or chart bars to filter</p></div>
+  <div class="hdr-r"><div id="lu">Loading...</div><div style="margin-top:5px"><span class="tag" id="tt">—</span> <span class="tag" id="vt">—</span></div></div>
+</div>
+<div id="loading">
+  <div class="spin"></div>
+  <div class="lt">Querying USASpending.gov</div>
+  <div class="ls" id="ls">Fetching 8(a) contract records — this takes 3–4 minutes on first load</div>
+  <div id="pb-wrap"><div id="pb"></div></div>
+  <div id="pt">0%</div>
+</div>
+<div id="main"><div class="c">
+  <div class="kpis">
+    <div class="kpi u" onclick="fu('urgent')" id="ku"><div class="v" id="kvu">—</div><div class="l">Expire This Month</div><div class="h">click to filter ↑</div></div>
+    <div class="kpi s" onclick="fu('soon')" id="ks"><div class="v" id="kvs">—</div><div class="l">Next 30–90 Days</div><div class="h">click to filter ↑</div></div>
+    <div class="kpi ok" onclick="fu('later')" id="kl"><div class="v" id="kvl">—</div><div class="l">90+ Days Out</div><div class="h">click to filter ↑</div></div>
+    <div class="kpi fl" onclick="fu('flagged')" id="kf"><div class="v" id="kvf">0</div><div class="l">Flagged for Pursuit</div><div class="h">click to filter ↑</div></div>
+    <div class="kpi al" onclick="fu('all')" id="ka"><div class="v" id="kva">—</div><div class="l">Total Expiring</div><div class="h">click to show all ↑</div></div>
+  </div>
+  <div class="cr">
+    <div class="card"><h3>By Month <small style="font-weight:400;text-transform:none;color:#aaa">(click bar to filter)</small></h3><canvas id="mc"></canvas></div>
+    <div class="card"><h3>Top Agencies <small style="font-weight:400;text-transform:none;color:#aaa">(click to filter)</small></h3><div id="ab"></div></div>
+  </div>
+  <div class="fb">
+    <span class="fl2">Search:</span>
+    <input type="text" id="si" placeholder="Recipient, award ID, description..." oninput="af()">
+    <span class="fl2">Agency:</span>
+    <select id="agf" onchange="af()"><option value="">All Agencies</option></select>
+    <span class="fl2">Sort:</span>
+    <select id="ss" onchange="af()">
+      <option value="end_date|1">End Date (soonest)</option>
+      <option value="end_date|-1">End Date (latest)</option>
+      <option value="amount|-1">Amount (largest)</option>
+      <option value="amount|1">Amount (smallest)</option>
+      <option value="recipient|1">Recipient A–Z</option>
+      <option value="agency|1">Agency A–Z</option>
+    </select>
+    <label id="naics-toggle" title="Filter to Arctic IT NAICS codes only" style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 10px;border-radius:4px;border:1px solid #ddd;font-size:11px;background:white;user-select:none" onclick="toggleNaics()">
+      <span id="naics-check" style="font-size:14px">✅</span>
+      <span>My NAICS Only</span>
+    </label>
+    <span id="cf" onclick="clf()">✕ Clear filters</span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="ebtn" onclick="exp()">⬇ Export CSV</button>
+      <button class="rbtn" onclick="location.reload()">↺ Refresh Data</button>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sh"><h3>Contract Details</h3><span id="rc"></span></div>
+    <table><thead><tr>
+      <th style="width:30px">⚑</th>
+      <th onclick="sb('award_id')">Award ID</th>
+      <th onclick="sb('recipient')">Recipient</th>
+      <th onclick="sb('agency')">Agency</th>
+      <th onclick="sb('amount')" style="text-align:right">Amount</th>
+      <th onclick="sb('end_date')">End Date</th>
+      <th onclick="sb('potential_end')">Pot. End</th>
+      <th>Urgency</th>
+      <th>Description</th>
+    </tr></thead><tbody id="tb"></tbody></table>
+    <div class="pg"><div class="pi" id="pi"></div><div class="pbs" id="pbs"></div></div>
+  </div>
+</div></div>
+<script>
+var all=[],fil=[],pg=1,PS=25,sk='end_date',sd=1,urg='all';
+var flagged=JSON.parse(localStorage.getItem('8a_f')||'{}');
+var MY_NAICS=['541519','334118','513210','518210','541330','541511','541512','541513','541611','561422','561990','611420'];
+var naicsOnly=true;
+var chart=null;
+var today=new Date();today.setHours(0,0,0,0);
+var sixMo=new Date(today);sixMo.setMonth(sixMo.getMonth()+6);
+function f8(d){return d.toISOString().substring(0,10);}
+var t0=f8(today),t6=f8(sixMo);
+function uo(ed){var d=Math.round((new Date(ed)-today)/86400000);return d<=30?'urgent':d<=90?'soon':'later';}
+function bdg(u){return u==='urgent'?'<span class="badge bu">URGENT</span>':u==='soon'?'<span class="badge bs">SOON</span>':'<span class="badge bl">LATER</span>';}
+function mn(n){return'$'+Math.round(n).toLocaleString();}
+function sp(msg,pct){document.getElementById('ls').textContent=msg;document.getElementById('pb').style.width=pct+'%';document.getElementById('pt').textContent=Math.round(pct)+'%';}
+async function load(){
+  var start=new Date(today);start.setMonth(start.getMonth()-18);
+  sp('Searching 8(a) contracts on USASpending…',5);
+  var recs=[],p=1,more=true,lid=null,lv=null;
+  while(more&&p<=60){
+    var body={filters:{set_aside_type_codes:['8A'],time_period:[{start_date:f8(start),end_date:t0}],award_type_codes:['A','B','C','D']},fields:['Award ID','Recipient Name','Award Amount','Awarding Agency','Awarding Sub Agency','Description','naics_code','naics_description','psc_description'],page:p,limit:50,sort:'Award Amount',order:'desc',subawards:false};
+    if(lid){body.last_record_unique_id=lid;body.last_record_sort_value=lv;}
+    var ctrl=new AbortController();var timer=setTimeout(function(){ctrl.abort();},30000);
+    var d=await fetch('https://api.usaspending.gov/api/v2/search/spending_by_award/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal}).then(r=>r.json()).finally(function(){clearTimeout(timer);});
+    recs.push(...(d.results||[]));
+    more=d.page_metadata?.hasNext||false;lid=d.page_metadata?.last_record_unique_id;lv=d.page_metadata?.last_record_sort_value;
+    sp('Found '+recs.length+' contracts…',Math.min(30,5+recs.length/80));p++;
+  }
+  sp('Fetching end dates for '+recs.length+' contracts…',32);
+  var dets=new Array(recs.length).fill(null);
+  var B=20;
+  for(var i=0;i<recs.length;i+=B){
+    var sl=recs.slice(i,i+B);
+    var res=await Promise.all(sl.map(r=>fetch('https://api.usaspending.gov/api/v2/awards/'+r.generated_internal_id+'/').then(r=>r.json()).catch(()=>null)));
+    res.forEach(function(d,j){dets[i+j]=d;});
+    sp('Checking dates… '+(i+sl.length)+'/'+recs.length,32+Math.round((i/recs.length)*65));
+  }
+  all=recs.map(function(c,i){
+    var d=dets[i];var ed=d&&d.period_of_performance?d.period_of_performance.end_date:'';
+    return{award_id:c['Award ID'],gen_id:c.generated_internal_id,recipient:c['Recipient Name']||'',agency:c['Awarding Agency']||'',sub_agency:c['Awarding Sub Agency']||'',amount:c['Award Amount']||0,end_date:ed,potential_end:(d&&d.period_of_performance&&d.period_of_performance.potential_end_date||'').split(' ')[0],naics:c.naics_description||'',psc:c.psc_description||'',description:(c.Description||'').replace(/IGF::[^:]+::[^:]+IGF\s*/g,'').trim(),naics_code:c.naics_code||'',urgency:uo(ed)};
+  }).filter(function(c){return c.end_date>=t0&&c.end_date<=t6;}).sort(function(a,b){return a.end_date.localeCompare(b.end_date);});
+  sp('Building dashboard…',99);
+}
+function boot(){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('main').style.display='block';
+  var tot=all.reduce(function(s,c){return s+c.amount;},0);
+  document.getElementById('lu').textContent='Updated: '+today.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('tt').textContent=all.length+' contracts';
+  document.getElementById('vt').textContent='$'+(tot/1e9).toFixed(2)+'B total';
+  ukpi();rc();ra();paf();af();
+}
+function ukpi(){
+  var u=all.filter(function(c){return c.urgency==='urgent';}).length;
+  var s=all.filter(function(c){return c.urgency==='soon';}).length;
+  var l=all.filter(function(c){return c.urgency==='later';}).length;
+  var f=Object.values(flagged).filter(Boolean).length;
+  document.getElementById('kvu').textContent=u;document.getElementById('kvs').textContent=s;
+  document.getElementById('kvl').textContent=l;document.getElementById('kvf').textContent=f;document.getElementById('kva').textContent=all.length;
+}
+function rc(){
+  var bm={};all.forEach(function(c){var m=c.end_date.substring(0,7);bm[m]=(bm[m]||0)+1;});
+  var labs=Object.keys(bm).sort();
+  var nm=today.getMonth()+1;
+  var cols=labs.map(function(l){var mo=parseInt(l.split('-')[1]);return mo===nm?'#c0392b':mo<=nm+2?'#e67e22':'#2d5a9e';});
+  var ctx=document.getElementById('mc').getContext('2d');
+  if(chart)chart.destroy();
+  chart=new Chart(ctx,{type:'bar',data:{labels:labs.map(function(l){var p=l.split('-');return['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1]]+' '+p[0];}),datasets:[{data:labs.map(function(l){return bm[l];}),backgroundColor:cols,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.raw+' contracts';}}}},scales:{y:{beginAtZero:true,ticks:{font:{size:10}}},x:{ticks:{font:{size:10}}}},onClick:function(e,el){if(el.length)fm(labs[el[0].index]);}}});
+}
+function ra(){
+  var ba={};all.forEach(function(c){ba[c.agency]=(ba[c.agency]||0)+1;});
+  var sorted=Object.entries(ba).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  var mx=sorted[0]?sorted[0][1]:1;
+  document.getElementById('ab').innerHTML=sorted.map(function(e){return'<div class="ab" onclick="fag(\''+e[0].replace(/'/g,"\\'")+'\')">'+'<div class="an" title="'+e[0]+'">'+e[0]+'</div>'+'<div class="bw"><div class="bf" style="width:'+Math.round(e[1]/mx*100)+'%"></div></div>'+'<div class="ac">'+e[1]+'</div></div>';}).join('');
+}
+function paf(){
+  var ags=[...new Set(all.map(function(c){return c.agency;}))].sort();
+  document.getElementById('agf').innerHTML='<option value="">All Agencies</option>'+ags.map(function(a){return'<option>'+a+'</option>';}).join('');
+}
+function af(){
+  var q=document.getElementById('si').value.toLowerCase();
+  var ag=document.getElementById('agf').value;
+  var sv=document.getElementById('ss').value.split('|');
+  var fsk=sv[0],fsd=parseInt(sv[1])||1;
+  fil=all.filter(function(c){
+    if(urg==='flagged'&&!flagged[c.award_id])return false;
+    if(urg!=='all'&&urg!=='flagged'&&c.urgency!==urg)return false;
+    if(naicsOnly&&!MY_NAICS.includes(c.naics_code))return false;
+    if(ag&&c.agency!==ag)return false;
+    if(q&&!(c.award_id+' '+c.recipient+' '+c.agency+' '+c.description).toLowerCase().includes(q))return false;
+    return true;
+  });
+  fil.sort(function(a,b){var av=a[fsk],bv=b[fsk];return typeof av==='number'?(av-bv)*fsd:String(av).localeCompare(String(bv))*fsd;});
+  pg=1;document.getElementById('cf').style.display=(urg!=='all'||q||ag)?'inline':'none';rt();
+}
+function toggleNaics(){naicsOnly=!naicsOnly;document.getElementById('naics-check').textContent=naicsOnly?'✅':'⬜';af();}
+function sb(k){if(sk===k)sd*=-1;else{sk=k;sd=1;}document.getElementById('ss').value=k+'|'+sd;af();}
+function fu(u){urg=u;document.querySelectorAll('.kpi').forEach(function(k){k.classList.remove('active');});var m={urgent:'ku',soon:'ks',later:'kl',flagged:'kf',all:'ka'};if(m[u])document.getElementById(m[u]).classList.add('active');af();}
+function fm(m){document.getElementById('si').value=m;urg='all';af();}
+function fag(a){document.getElementById('agf').value=a;af();}
+function clf(){urg='all';naicsOnly=true;document.getElementById('naics-check').textContent='✅';document.getElementById('si').value='';document.getElementById('agf').value='';document.querySelectorAll('.kpi').forEach(function(k){k.classList.remove('active');});af();}
+function rt(){
+  var start=(pg-1)*PS,sl=fil.slice(start,start+PS);
+  document.getElementById('tb').innerHTML=sl.map(function(c){
+    var url='https://www.usaspending.gov/award/'+c.gen_id+'/';
+    var fl=!!flagged[c.award_id];
+    return'<tr class="'+c.urgency+'"><td><button class="flg '+(fl?'on':'')+'" onclick="tf(\''+c.award_id+'\')" title="'+(fl?'Remove flag':'Flag for pursuit')+'">⚑</button></td>'+'<td><a class="al2" href="'+url+'" target="_blank">'+c.award_id+'</a></td>'+'<td>'+c.recipient+'</td>'+'<td title="'+c.sub_agency+'">'+c.agency.replace('Department of ','Dept. of ').replace('Department of the ','Dept. of the ')+'</td>'+'<td style="text-align:right;white-space:nowrap">'+mn(c.amount)+'</td>'+'<td style="white-space:nowrap"><strong>'+c.end_date+'</strong></td>'+'<td style="white-space:nowrap;color:#888">'+(c.potential_end||'—')+'</td>'+'<td>'+bdg(c.urgency)+'</td>'+'<td style="color:#555;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+c.description+'">'+c.description.substring(0,65)+'</td></tr>';
+  }).join('');
+  var tot=Math.ceil(fil.length/PS);
+  document.getElementById('rc').textContent=fil.length+' contracts';
+  document.getElementById('pi').textContent='Page '+pg+' of '+tot+' · '+fil.length+' results';
+  var h='<button class="pb2" onclick="gp('+(pg-1)+')" '+(pg<=1?'disabled':'')+'>‹ Prev</button>';
+  var range=[];for(var i=1;i<=tot;i++){if(i===1||i===tot||Math.abs(i-pg)<=2)range.push(i);else if(range[range.length-1]!=='…')range.push('…');}
+  range.forEach(function(p){h+=p==='…'?'<button class="pb2" disabled>…</button>':'<button class="pb2 '+(p===pg?'active':'')+'" onclick="gp('+p+')">'+p+'</button>';});
+  h+='<button class="pb2" onclick="gp('+(pg+1)+')" '+(pg>=tot?'disabled':'')+'>Next ›</button>';
+  document.getElementById('pbs').innerHTML=h;
+}
+function gp(p){var t=Math.ceil(fil.length/PS);if(p<1||p>t)retur
